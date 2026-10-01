@@ -5,8 +5,8 @@
 #   ./start.sh --prod    server mode (AWS EC2 etc.): builds the frontend once and serves
 #                        everything from one port, reachable from other machines
 #
-# Default ports are 8000 (backend / --prod) and 5173 (dev frontend); if one is busy the
-# next free port is used. Override with AIFARM_API_PORT / AIFARM_WEB_PORT.
+# The application is opened on port 5500 in both modes (the dev backend uses 8000 internally).
+# If a port is busy the next free one is used. Override with AIFARM_WEB_PORT / AIFARM_API_PORT.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -41,7 +41,8 @@ fi
 echo "==> Checking backend dependencies"
 backend/.venv/bin/python -m pip install -q --disable-pip-version-check -r backend/requirements.txt
 
-if [ ! -d frontend/node_modules ]; then
+# (re)install when dependencies are missing or package-lock.json changed, e.g. after `git pull`
+if [ ! -f frontend/node_modules/.package-lock.json ] || [ frontend/package-lock.json -nt frontend/node_modules/.package-lock.json ]; then
   echo "==> Installing frontend dependencies"
   (cd frontend && npm install --no-fund --no-audit)
 fi
@@ -60,7 +61,7 @@ while True:
             port += 1
 PY
 }
-export AIFARM_API_PORT="$(free_port "${AIFARM_API_PORT:-8000}")"
+export AIFARM_WEB_PORT="$(free_port "${AIFARM_WEB_PORT:-5500}")"
 
 cleanup() { kill "${BACKEND_PID:-}" "${FRONTEND_PID:-}" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
@@ -81,20 +82,20 @@ if [ "$MODE" = prod ]; then
   fi
 
   echo
-  echo "  AIFARM DOCTOR is running on port $AIFARM_API_PORT"
-  echo "    On this machine:  http://localhost:$AIFARM_API_PORT"
+  echo "  AIFARM DOCTOR is running on port $AIFARM_WEB_PORT"
+  echo "    On this machine:  http://localhost:$AIFARM_WEB_PORT"
   if [ -n "$PUBLIC_IP" ]; then
-    echo "    From outside:     http://$PUBLIC_IP:$AIFARM_API_PORT"
-    echo "    (allow inbound TCP $AIFARM_API_PORT in the EC2 security group)"
+    echo "    From outside:     http://$PUBLIC_IP:$AIFARM_WEB_PORT"
+    echo "    (allow inbound TCP $AIFARM_WEB_PORT in the EC2 security group)"
   fi
   echo "  Press Ctrl+C to stop."
   echo
   cd backend
-  exec .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port "$AIFARM_API_PORT"
+  exec .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port "$AIFARM_WEB_PORT"
 fi
 
 # ---------------------------------------------------------------- development mode
-export AIFARM_WEB_PORT="$(free_port "${AIFARM_WEB_PORT:-5173}")"
+export AIFARM_API_PORT="$(free_port "${AIFARM_API_PORT:-8000}")"
 
 echo "==> Starting backend on http://localhost:$AIFARM_API_PORT"
 (cd backend && exec .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port "$AIFARM_API_PORT") &

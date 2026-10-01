@@ -24,7 +24,10 @@ if (-not (Test-Path $venvPython)) {
 Write-Host '==> Checking backend dependencies'
 & $venvPython -m pip install -q -r (Join-Path $root 'backend\requirements.txt')
 
-if (-not (Test-Path (Join-Path $root 'frontend\node_modules'))) {
+# (re)install when dependencies are missing or package-lock.json changed, e.g. after `git pull`
+$installed = Join-Path $root 'frontend\node_modules\.package-lock.json'
+$lock = Join-Path $root 'frontend\package-lock.json'
+if (-not (Test-Path $installed) -or (Get-Item $lock).LastWriteTime -gt (Get-Item $installed).LastWriteTime) {
     Write-Host '==> Installing frontend dependencies'
     Push-Location (Join-Path $root 'frontend')
     npm install --no-fund --no-audit
@@ -40,9 +43,9 @@ function Get-FreePort([int]$port) {
         } catch { $port++ }
     }
 }
-# Default ports are 8000 and 5173; if one is busy the next free port is used.
+# The application is opened on port 5500 (backend uses 8000 internally); if one is busy the next free port is used.
 $apiStart = 8000; if ($env:AIFARM_API_PORT) { $apiStart = [int]$env:AIFARM_API_PORT }
-$webStart = 5173; if ($env:AIFARM_WEB_PORT) { $webStart = [int]$env:AIFARM_WEB_PORT }
+$webStart = 5500; if ($env:AIFARM_WEB_PORT) { $webStart = [int]$env:AIFARM_WEB_PORT }
 $env:AIFARM_API_PORT = Get-FreePort $apiStart
 $env:AIFARM_WEB_PORT = Get-FreePort $webStart
 

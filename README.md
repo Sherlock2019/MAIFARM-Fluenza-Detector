@@ -20,12 +20,13 @@ Requirements: Python 3.10+ and Node.js 18+. Everything runs locally; no cloud se
 ```
 
 The script installs dependencies on first run, starts the backend and frontend, and prints the address to open
-(http://localhost:5173 by default; the next free port is used if 5173 or 8000 is busy).
+(http://localhost:5500 by default; the next free port is used if 5500 or 8000 is busy).
+Set `AIFARM_WEB_PORT` to use a different port.
 
 ## Run it on a server (AWS EC2)
 
 ```bash
-# Ubuntu: one-time prerequisites (Node 18+ is required; Ubuntu 24.04's packaged Node is fine)
+# Ubuntu: one-time prerequisites (Node 18+; tested with Ubuntu 24.04's packaged Node 18.19)
 sudo apt-get update && sudo apt-get install -y git python3 python3-venv python3-pip nodejs npm
 
 git clone git@github.com:Sherlock2019/MAIFARM-Fluenza-Detector.git
@@ -33,8 +34,8 @@ cd MAIFARM-Fluenza-Detector
 ./start.sh --prod
 ```
 
-`--prod` builds the frontend once and serves the whole application from a single port (8000 by default, or
-`AIFARM_API_PORT=80`-style override), listening on all interfaces. The script prints the public address when it runs on
+`--prod` builds the frontend once and serves the whole application from a single port (5500 by default, or
+`AIFARM_WEB_PORT=80`-style override), listening on all interfaces. The script prints the public address when it runs on
 EC2. Allow that TCP port inbound in the instance's security group.
 
 To keep it running after you log out:
